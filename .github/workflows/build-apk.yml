@@ -1,0 +1,79 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git \
+          wget \
+          unzip \
+          python3-pip \
+          autoconf \
+          automake \
+          cmake \
+          libtool \
+          pkg-config \
+          zlib1g-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libtinfo5 \
+          libffi-dev \
+          libssl-dev
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install "cython==0.29.21" "setuptools==44.0.0"
+        pip install buildozer
+        
+    - name: Create buildozer.spec
+      run: |
+        echo "[app]" > buildozer.spec
+        echo "title = Burmaldatik" >> buildozer.spec
+        echo "package.name = burmaldatik" >> buildozer.spec
+        echo "package.domain = org.burmaldatik" >> buildozer.spec
+        echo "source.dir = ." >> buildozer.spec
+        echo "version = 1.0" >> buildozer.spec
+        echo "requirements = python3, pygame==2.0.3" >> buildozer.spec
+        echo "" >> buildozer.spec
+        echo "[buildozer]" >> buildozer.spec
+        echo "log_level = 2" >> buildozer.spec
+        echo "" >> buildozer.spec
+        echo "[android]" >> buildozer.spec
+        echo "android.api = 30" >> buildozer.spec
+        echo "android.minapi = 21" >> buildozer.spec
+        echo "android.ndk = 23b" >> buildozer.spec
+        echo "android.sdk = 30" >> buildozer.spec
+        echo "android.accept_sdk_license = True" >> buildozer.spec
+        echo "android.archs = arm64-v8a, armeabi-v7a" >> buildozer.spec
+        
+    - name: Build with Buildozer
+      run: |
+        buildozer android debug
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: burmaldatik-apk
+        path: bin/*.apk
+
